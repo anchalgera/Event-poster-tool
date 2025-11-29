@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Event Poster Creator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-color: #f3f4f6;
+            --sidebar-width: 350px;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar / Form --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border-right: 1px solid #e5e7eb;
+            overflow-y: auto;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+        }
+
+        h2 { margin-top: 0; color: #111827; }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        input, select, textarea {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button.download-btn {
+            margin-top: auto;
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button.download-btn:hover { background-color: #1d4ed8; }
+
+        /* --- Preview Area --- */
+        .preview-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e5e7eb;
+            padding: 2rem;
+        }
+
+        /* The Poster Canvas */
+        #poster {
+            width: 400px;
+            height: 600px; /* 2:3 Ratio */
+            background: white;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        /* --- Templates CSS --- */
+        
+        /* 1. CORPORATE TEMPLATE */
+        .template-corporate {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #1e293b;
+            padding: 3rem;
+            text-align: left;
+            border-left: 20px solid #0f172a;
+        }
+        .template-corporate .poster-category {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+        .template-corporate .poster-title {
+            font-size: 3rem;
+            line-height: 1.1;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            color: #0f172a;
+        }
+        .template-corporate .poster-host {
+            font-size: 1.2rem;
+            font-style: italic;
+            margin-bottom: 3rem;
+            color: #334155;
+        }
+        .template-corporate .info-grid {
+            border-top: 2px solid #cbd5e1;
+            padding-top: 2rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        /* 2. ACADEMIC / STUDENT TEMPLATE */
+        .template-academic {
+            background-color: #ffffff;
+            color: #000;
+            padding: 2rem;
+            border: 8px solid #dc2626;
+            text-align: center;
+            justify-content: center;
+        }
+        .template-academic .poster-category {
+            background: #dc2626;
+            color: white;
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+        }
+        .template-academic .poster-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .template-academic .info-grid {
+            margin-top: 2rem;
+            background: #fef2f2;
+            padding: 1.5rem;
+            border-radius: 1rem;
+        }
+
+        /* 3. MODERN DARK TEMPLATE */
+        .template-modern {
+            background-color: #111;
+            color: #fff;
+            padding: 0;
+        }
+        .template-modern .top-half {
+            height: 60%;
+            background: linear-gradient(45deg, #7c3aed, #2563eb);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .template-modern .bottom-half {
+            height: 40%;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .template-modern .poster-title {
+            font-size: 2.8rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .template-modern .info-item {
+            margin-bottom: 0.5rem;
+            color: #a78bfa;
+            font-weight: bold;
+        }
+
+        /* Utility classes for poster content */
+        .poster-info {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .hidden { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Poster Generator</h2>
+        
+        <div class="form-group">
+            <label>Template Style</label>
+            <select id="templateSelect" onchange="changeTemplate()">
+                <option value="corporate">Corporate (Clean)</option>
+                <option value="academic">Student Assoc. (Bold)</option>
+                <option value="modern">Modern (Dark)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Event Category</label>
+            <input type="text" id="in_category" placeholder="e.g. Leadership Workshop" oninput="updatePoster()" value="Leadership Talk">
+        </div>
+
+        <div class="form-group">
+            <label>Event Title</label>
+            <textarea id="in_title" rows="2" placeholder="Event Name" oninput="updatePoster()">Mastering Public Speaking</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Host / Speaker</label>
+            <input type="text" id="in_host" placeholder="Name" oninput="updatePoster()" value="Coach Sarah Jenkins">
+        </div>
+
+        <div class="form-group">
+            <label>Date & Time</label>
+            <input type="text" id="in_date" placeholder="Date/Time" oninput="updatePoster()" value="Oct 24th, 6:00 PM">
+        </div>
+
+        <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="in_loc" placeholder="Address or Zoom" oninput="updatePoster()" value="Innovation Hub, Room 3B">
+        </div>
+
+        <div class="form-group">
+            <label>Price / Entry</label>
+            <input type="text" id="in_price" placeholder="Price" oninput="updatePoster()" value="Free Entry">
+        </div>
+
+        <button class="download-btn" onclick="downloadPoster()">Download Poster</button>
+    </div>
+
+    <div class="preview-area">
+        <div id="poster" class="template-corporate">
+            <div id="poster-content">
+                <div class="poster-category" id="out_category">Leadership Talk</div>
+                <div class="poster-title" id="out_title">Mastering Public Speaking</div>
+                <div class="poster-host" id="out_host">Coach Sarah Jenkins</div>
+                
+                <div class="info-grid">
+                    <span class="poster-info">📅 <span id="out_date">Oct 24th, 6:00 PM</span></span>
+                    <span class="poster-info">📍 <span id="out_loc">Innovation Hub, Room 3B</span></span>
+                    <span class="poster-info">🎟️ <span id="out_price">Free Entry</span></span>
+                </div>
+            </div>
+
+            <div id="modern-content" class="hidden" style="width:100%; height:100%">
+                <div class="top-half">
+                    <div style="font-weight:bold; opacity:0.8; text-transform:uppercase" id="mod_category">Leadership Talk</div>
+                    <div class="poster-title" id="mod_title">Mastering Public Speaking</div>
+                </div>
+                <div class="bottom-half">
+                    <div class="info-item" id="mod_host">Coach Sarah Jenkins</div>
+                    <div style="margin-top:1rem;">
+                        <div id="mod_date">Oct 24th, 6:00 PM</div>
+                        <div id="mod_loc">Innovation Hub, Room 3B</div>
+                        <div style="color:#fff; margin-top:10px" id="mod_price">Free Entry</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Real-time update logic
+        function updatePoster() {
+            // Get values
+            const cat = document.getElementById('in_category').value;
+            const title = document.getElementById('in_title').value;
+            const host = document.getElementById('in_host').value;
+            const date = document.getElementById('in_date').value;
+            const loc = document.getElementById('in_loc').value;
+            const price = document.getElementById('in_price').value;
+
+            // Update Standard Template
+            document.getElementById('out_category').innerText = cat;
+            document.getElementById('out_title').innerText = title;
+            document.getElementById('out_host').innerText = host;
+            document.getElementById('out_date').innerText = date;
+            document.getElementById('out_loc').innerText = loc;
+            document.getElementById('out_price').innerText = price;
+
+            // Update Modern Template
+            document.getElementById('mod_category').innerText = cat;
+            document.getElementById('mod_title').innerText = title;
+            document.getElementById('mod_host').innerText = host;
+            document.getElementById('mod_date').innerText = date;
+            document.getElementById('mod_loc').innerText = loc;
+            document.getElementById('mod_price').innerText = price;
+        }
+
+        // Template Switcher
+        function changeTemplate() {
+            const poster = document.getElementById('poster');
+            const style = document.getElementById('templateSelect').value;
+            
+            // Reset classes
+            poster.className = '';
+            poster.classList.add('template-' + style);
+
+            // Toggle HTML structures based on complexity
+            const standardContent = document.getElementById('poster-content');
+            const modernContent = document.getElementById('modern-content');
+
+            if (style === 'modern') {
+                standardContent.classList.add('hidden');
+                modernContent.classList.remove('hidden');
+            } else {
+                standardContent.classList.remove('hidden');
+                modernContent.classList.add('hidden');
+            }
+        }
+
+        // Download Logic using html2canvas
+        function downloadPoster() {
+            const poster = document.getElementById('poster');
+            
+            html2canvas(poster, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'my-event-poster.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
