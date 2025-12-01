@@ -3,395 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Event Poster Creator</title>
+    <title>Poster Creator Studio V4</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Oswald:wght@500;700&family=Merriweather:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
         :root {
-            --sidebar-width: 380px;
-            --ui-bg: #f8fafc;
-            --ui-border: #e2e8f0;
+            --sidebar-width: 400px;
             --primary-ui: #3b82f6;
+            --ui-border: #e2e8f0;
         }
 
-        /* --- UI & Layout --- */
         body { margin: 0; font-family: 'Inter', sans-serif; display: flex; height: 100vh; background: #eef2f6; overflow: hidden; }
         
-        /* Scrollbar styling */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
+        /* --- SIDEBAR --- */
         .sidebar {
-            width: var(--sidebar-width);
-            background: white;
-            border-right: 1px solid var(--ui-border);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            flex-shrink: 0;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.03);
-            z-index: 10;
+            width: var(--sidebar-width); background: white; border-right: 1px solid var(--ui-border);
+            display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; z-index: 10;
         }
 
-        .sidebar-header { padding: 1.5rem; border-bottom: 1px solid var(--ui-border); background: #fff; }
-        .sidebar-header h2 { margin: 0; font-size: 1.25rem; color: #0f172a; }
         .sidebar-content { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 
+        /* Section Headers */
         .section-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #64748b;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 0.25rem;
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
+            color: #64748b; font-weight: 700; margin-bottom: 0.8rem;
+            border-bottom: 2px solid #f1f5f9; padding-bottom: 0.25rem;
         }
 
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        /* Forms */
         .form-group { margin-bottom: 1rem; }
         label { display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.4rem; }
-        
-        input[type="text"], input[type="date"], input[type="time"], textarea, select {
-            width: 100%;
-            padding: 0.6rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-family: inherit;
-            box-sizing: border-box; /* Fix padding width issue */
+        input, textarea, select {
+            width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px;
+            font-family: inherit; box-sizing: border-box; font-size: 0.9rem;
         }
         
-        /* File Upload Styling */
+        /* NEW: Text Styling Toolbar */
+        .style-toolbar {
+            display: flex; gap: 5px; margin-top: 5px;
+        }
+        .style-btn {
+            background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px;
+            padding: 4px 10px; font-size: 0.8rem; cursor: pointer; font-weight: bold;
+            color: #475569; transition: 0.1s;
+        }
+        .style-btn:hover { background: #e2e8f0; color: #000; }
+        
+        /* NEW: Background Gallery Grid */
+        .bg-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 0.5rem;
+        }
+        .bg-thumb {
+            width: 100%; height: 50px; border-radius: 4px; cursor: pointer;
+            object-fit: cover; border: 2px solid transparent; opacity: 0.7; transition: 0.2s;
+        }
+        .bg-thumb:hover, .bg-thumb.active { border-color: var(--primary-ui); opacity: 1; }
+
+        /* NEW: Registration Link Box */
+        .link-box {
+            background: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem; border-radius: 8px;
+        }
+
+        /* File Upload */
         .file-upload-wrapper {
-            position: relative;
-            border: 2px dashed #cbd5e1;
-            border-radius: 6px;
-            padding: 1rem;
-            text-align: center;
-            transition: 0.2s;
-            background: #f8fafc;
+            position: relative; border: 2px dashed #cbd5e1; border-radius: 6px;
+            padding: 0.8rem; text-align: center; background: #f8fafc; font-size: 0.8rem;
         }
-        .file-upload-wrapper:hover { border-color: var(--primary-ui); background: #eff6ff; }
-        input[type="file"] {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0; cursor: pointer;
-        }
-        .upload-label { font-size: 0.8rem; color: #64748b; pointer-events: none; }
+        input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-        /* Color Picker */
-        .color-group { display: flex; gap: 1rem; align-items: center; }
-        input[type="color"] { width: 40px; height: 40px; border: none; cursor: pointer; background: none; }
-
-        /* Range Slider */
-        input[type="range"] { width: 100%; }
-
+        /* Download Area */
         .download-area {
-            padding: 1.5rem;
-            border-top: 1px solid var(--ui-border);
-            background: white;
-            margin-top: auto;
+            padding: 1.5rem; border-top: 1px solid var(--ui-border);
+            background: white; margin-top: auto; display: grid; gap: 0.5rem;
         }
         .btn-download {
-            width: 100%;
-            background: var(--primary-ui);
-            color: white;
-            border: none;
-            padding: 1rem;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: 0.2s;
+            width: 100%; color: white; border: none; padding: 0.8rem;
+            border-radius: 8px; font-weight: 700; cursor: pointer; text-align: center;
         }
-        .btn-download:hover { background: #2563eb; }
+        .btn-png { background: var(--primary-ui); }
+        .btn-pdf { background: #475569; }
 
         /* --- PREVIEW AREA --- */
         .preview-area {
-            flex: 1;
-            background: #cbd5e1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            position: relative;
+            flex: 1; background: #cbd5e1; display: flex;
+            align-items: center; justify-content: center; padding: 2rem;
         }
 
-        /* --- THE POSTER CANVAS --- */
         #poster-canvas {
-            width: 500px;
-            height: 700px; /* 5:7 Ratio */
-            background-color: var(--bg-color, #ffffff);
-            position: relative;
+            width: 500px; height: 700px; /* 5:7 Ratio */
+            background-color: #fff; position: relative;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* Poster Background Image Layer */
         .poster-bg-layer {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-size: cover;
-            background-position: center;
-            z-index: 0;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-size: cover; background-position: center; z-index: 0;
+            transition: background-image 0.3s ease;
         }
         .poster-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: black;
-            opacity: var(--overlay-opacity, 0.5);
-            z-index: 1;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: black; opacity: 0.6; z-index: 1;
         }
-
-        /* Poster Content Layout */
         .poster-content {
-            position: relative;
-            z-index: 2;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            padding: 2.5rem;
+            position: relative; z-index: 2; height: 100%;
+            display: flex; flex-direction: column; padding: 2.5rem;
             color: var(--text-color, #ffffff);
         }
 
-        /* Top Bar: Logo & Category */
-        .poster-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-        .poster-logo {
-            max-height: 50px;
-            max-width: 150px;
-            object-fit: contain;
-            display: none; /* Hidden unless src exists */
-        }
+        /* Poster Elements */
+        .poster-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+        .poster-logo { max-height: 50px; max-width: 150px; object-fit: contain; display: none; }
         .poster-category {
-            background: var(--accent-color, #dc2626);
-            color: white;
-            padding: 4px 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
+            background: var(--accent-color, #dc2626); color: white;
+            padding: 4px 12px; font-weight: 700; text-transform: uppercase;
+            font-size: 0.8rem; letter-spacing: 1px;
         }
 
-        /* Main Body */
-        .poster-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
+        .poster-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        
         .poster-title {
-            font-family: 'Oswald', sans-serif;
-            font-size: 3.5rem;
-            line-height: 1.1;
-            text-transform: uppercase;
-            margin: 0 0 1rem 0;
+            font-family: 'Oswald', sans-serif; font-size: 3.5rem; line-height: 1.1;
+            text-transform: uppercase; margin: 0 0 1rem 0;
             text-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+            transition: all 0.2s;
         }
-
         .poster-subtitle {
-            font-family: 'Merriweather', serif;
-            font-size: 1.1rem;
-            font-weight: 300;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-            line-height: 1.4;
-            max-width: 90%;
-            border-left: 3px solid var(--accent-color, #dc2626);
-            padding-left: 1rem;
+            font-family: 'Merriweather', serif; font-size: 1.1rem; font-weight: 300;
+            opacity: 0.9; margin-bottom: 2rem; line-height: 1.4; max-width: 90%;
+            border-left: 3px solid var(--accent-color, #dc2626); padding-left: 1rem;
+            transition: all 0.2s;
         }
 
-        /* Speaker Section */
+        /* Speaker Lockup */
         .poster-speaker-lockup {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 1rem;
-            margin-bottom: 2rem;
-            background: rgba(255,255,255,0.1);
-            padding: 1rem;
-            border-radius: 8px;
-            backdrop-filter: blur(5px);
-            width: fit-content;
+            display: flex; align-items: center; gap: 1rem; margin-top: 1rem; margin-bottom: 2rem;
+            background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;
+            backdrop-filter: blur(5px); width: fit-content;
         }
         .speaker-img {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid white;
-            display: none; /* Hidden by default */
+            width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+            border: 2px solid white; display: none;
         }
         .speaker-info h4 { margin: 0; font-size: 1rem; font-weight: 700; }
         .speaker-info span { font-size: 0.8rem; opacity: 0.8; }
 
-        /* Footer: Details & CTA */
+        /* Footer */
         .poster-footer {
-            margin-top: auto;
-            border-top: 1px solid rgba(255,255,255,0.3);
-            padding-top: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+            margin-top: auto; border-top: 1px solid rgba(255,255,255,0.3);
+            padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: flex-end;
         }
-        
-        .event-details {
-            display: grid;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        .detail-row { display: flex; align-items: center; gap: 0.5rem; }
-        
+        .event-details { display: grid; gap: 0.5rem; font-size: 0.9rem; font-weight: 600; }
         .poster-cta {
-            background: var(--accent-color, #dc2626);
-            color: white;
-            padding: 0.8rem 1.5rem;
-            font-weight: bold;
-            font-size: 0.9rem;
-            border-radius: 4px;
-            text-align: center;
+            background: var(--accent-color, #dc2626); color: white;
+            padding: 0.8rem 1.5rem; font-weight: bold; font-size: 0.9rem;
+            border-radius: 4px; text-align: center;
         }
+        
+        /* Utility classes for dynamic styling */
+        .is-bold { font-weight: 900 !important; }
+        .is-italic { font-style: italic !important; }
 
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>🛠️ Poster Studio Pro</h2>
+        <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0; display:flex; gap:10px; background:#f8fafc;">
+            <button class="style-btn" onclick="undoState()" style="flex:1">↩ Undo</button>
+            <button class="style-btn" onclick="location.reload()" style="flex:1">⚠️ Reset</button>
         </div>
-        
+
         <div class="sidebar-content">
             
             <div>
-                <div class="section-title">1. Event Details</div>
-                <div class="form-group">
-                    <label>Category / Tag</label>
-                    <input type="text" id="in-cat" value="WEBINAR SERIES" oninput="updatePoster()">
-                </div>
+                <div class="section-title">1. Content & Styling</div>
+                
                 <div class="form-group">
                     <label>Main Headline</label>
-                    <textarea id="in-title" rows="2" oninput="updatePoster()">Digital Marketing Mastery 2025</textarea>
+                    <textarea class="data-track" id="in-title" rows="2" onkeyup="updatePoster()">Digital Marketing Mastery</textarea>
+                    <div class="style-toolbar">
+                        <button class="style-btn" onclick="toggleStyle('out-title', 'is-bold')">B</button>
+                        <button class="style-btn" onclick="toggleStyle('out-title', 'is-italic')">I</button>
+                        <button class="style-btn" onclick="changeSize('out-title', 2)">A+</button>
+                        <button class="style-btn" onclick="changeSize('out-title', -2)">A-</button>
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label>Subtitle / Description</label>
-                    <textarea id="in-sub" rows="3" oninput="updatePoster()">Join us for an intensive deep-dive into the future of social media algorithms and brand storytelling.</textarea>
+                    <textarea class="data-track" id="in-sub" rows="3" onkeyup="updatePoster()">Join us for a deep-dive into the future of algorithms.</textarea>
+                     <div class="style-toolbar">
+                        <button class="style-btn" onclick="toggleStyle('out-sub', 'is-bold')">B</button>
+                        <button class="style-btn" onclick="toggleStyle('out-sub', 'is-italic')">I</button>
+                        <button class="style-btn" onclick="changeSize('out-sub', 1)">A+</button>
+                        <button class="style-btn" onclick="changeSize('out-sub', -1)">A-</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Date & Time</label>
+                    <input type="datetime-local" class="data-track" id="in-date-picker" onchange="updateDate()">
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="text" id="in-date" value="Nov 28th" oninput="updatePoster()">
-                    </div>
-                    <div class="form-group">
-                        <label>Time</label>
-                        <input type="text" id="in-time" value="18:00 CET" oninput="updatePoster()">
-                    </div>
-                </div>
                 <div class="form-group">
                     <label>Location</label>
-                    <input type="text" id="in-loc" value="Zoom / Online" oninput="updatePoster()">
+                    <input type="text" class="data-track" id="in-loc" value="Zoom / Online" onkeyup="updatePoster()">
+                </div>
+            </div>
+
+            <div class="link-box">
+                <div class="section-title" style="border:none; margin-bottom:0.5rem; color:#1e40af">🔗 Registration Link</div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="color:#1e40af">Link URL (For PDF)</label>
+                    <input type="url" class="data-track" id="in-url" placeholder="https://zoom.us/..." style="border-color:#93c5fd">
+                </div>
+                <div class="form-group" style="margin-top:10px">
+                    <label style="color:#1e40af">Button Text</label>
+                    <input type="text" class="data-track" id="in-cta" value="REGISTER FREE" onkeyup="updatePoster()">
                 </div>
             </div>
 
             <div>
-                <div class="section-title">2. Visuals & Branding</div>
+                <div class="section-title">3. Background & Speaker</div>
                 
-                <div class="form-group">
-                    <label>Logo (PNG/Transparent)</label>
-                    <div class="file-upload-wrapper">
-                        <span class="upload-label">Click to upload Logo</span>
-                        <input type="file" accept="image/*" onchange="handleImage(this, 'poster-logo')">
-                    </div>
+                <label>Select Background</label>
+                <div class="bg-grid">
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&q=80" class="bg-thumb" onclick="setBg(this.src)">
+                    <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&q=80" class="bg-thumb" onclick="setBg(this.src)">
+                    <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80" class="bg-thumb" onclick="setBg(this.src)">
+                    <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&q=80" class="bg-thumb" onclick="setBg(this.src)">
+                    <img src="https://images.unsplash.com/photo-1557683316-973673baf926?w=400&q=80" class="bg-thumb" onclick="setBg(this.src)">
                 </div>
 
-                <div class="form-group">
-                    <label>Speaker Photo</label>
+                <div class="form-group" style="margin-top:1rem">
+                    <label>Or Upload Custom BG</label>
                     <div class="file-upload-wrapper">
-                        <span class="upload-label">Click to upload Photo</span>
-                        <input type="file" accept="image/*" onchange="handleImage(this, 'speaker-img')">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Speaker Name</label>
-                        <input type="text" id="in-spk-name" value="Alex Rivera" oninput="updatePoster()">
-                    </div>
-                    <div class="form-group">
-                        <label>Speaker Title</label>
-                        <input type="text" id="in-spk-role" value="CMO at TechFlow" oninput="updatePoster()">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Background Image</label>
-                    <div class="file-upload-wrapper">
-                        <span class="upload-label">Click to upload Background</span>
+                        <span>Click to upload image</span>
                         <input type="file" accept="image/*" onchange="handleBg(this)">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Background Dimmer (<span id="opacity-val">60%</span>)</label>
-                    <input type="range" min="0" max="90" value="60" oninput="updateOpacity(this.value)">
+                    <label>Speaker Photo</label>
+                    <div class="form-row">
+                        <div class="file-upload-wrapper">
+                            <span>Upload</span>
+                            <input type="file" accept="image/*" onchange="handleImage(this, 'speaker-img')">
+                        </div>
+                        <div>
+                            <input type="text" class="data-track" id="in-spk-name" value="Alex Rivera" placeholder="Name" onkeyup="updatePoster()" style="margin-bottom:5px">
+                            <input type="text" class="data-track" id="in-spk-role" value="CMO at TechFlow" placeholder="Title" onkeyup="updatePoster()">
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div>
-                <div class="section-title">3. Colors & Theme</div>
-                <div class="color-group">
-                    <div class="form-group">
-                        <label>Accent Color</label>
-                        <input type="color" value="#dc2626" oninput="updateCSSVar('--accent-color', this.value)">
-                    </div>
-                    <div class="form-group">
-                        <label>Text Color</label>
-                        <input type="color" value="#ffffff" oninput="updateCSSVar('--text-color', this.value)">
-                    </div>
-                    <div class="form-group">
-                        <label>Background</label>
-                        <input type="color" value="#1e293b" oninput="updateCSSVar('--bg-color', this.value)">
-                    </div>
-                </div>
                 <div class="form-group">
-                    <label>Call To Action Text</label>
-                    <input type="text" id="in-cta" value="REGISTER FREE" oninput="updatePoster()">
+                    <label>Background Darkness (<span id="opacity-val">60%</span>)</label>
+                    <input type="range" class="data-track" id="in-opacity" min="0" max="90" value="60" oninput="updateOpacity(this.value)" onchange="saveState()">
                 </div>
             </div>
+            
+            <div>
+                <div class="section-title">4. Branding Colors</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Accent</label>
+                        <input type="color" class="data-track" id="in-accent" value="#dc2626" onchange="updateCSSVar('--accent-color', this.value); saveState();">
+                    </div>
+                    <div class="form-group">
+                        <label>Text</label>
+                        <input type="color" class="data-track" id="in-text" value="#ffffff" onchange="updateCSSVar('--text-color', this.value); saveState();">
+                    </div>
+                </div>
+             </div>
 
         </div>
 
         <div class="download-area">
-            <button class="btn-download" onclick="downloadPoster()">Download High-Res PNG</button>
+            <button class="btn-download btn-png" onclick="downloadPNG()">Download Image (PNG)</button>
+            <button class="btn-download btn-pdf" onclick="downloadPDF()">Download PDF (with Link)</button>
         </div>
     </div>
 
     <div class="preview-area">
-        
         <div id="poster-canvas">
-            
             <div class="poster-bg-layer" id="bg-layer" style="background-image: url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');"></div>
             <div class="poster-overlay"></div>
 
             <div class="poster-content">
                 <div class="poster-header">
-                    <span class="poster-category" id="out-cat">WEBINAR SERIES</span>
+                    <span class="poster-category" id="out-cat">EVENT POSTER</span>
                     <img id="poster-logo" class="poster-logo" src="" alt="Logo">
                 </div>
 
                 <div class="poster-body">
-                    <h1 class="poster-title" id="out-title">Digital Marketing Mastery 2025</h1>
-                    <div class="poster-subtitle" id="out-sub">Join us for an intensive deep-dive into the future of social media algorithms and brand storytelling.</div>
+                    <h1 class="poster-title" id="out-title">Digital Marketing Mastery</h1>
+                    <div class="poster-subtitle" id="out-sub">Join us for a deep-dive into the future of algorithms.</div>
 
                     <div class="poster-speaker-lockup">
                         <img id="speaker-img" class="speaker-img" src="" alt="Speaker">
@@ -404,82 +315,202 @@
 
                 <div class="poster-footer">
                     <div class="event-details">
-                        <div class="detail-row">📅 <span id="out-date">Nov 28th</span> &bull; <span id="out-time">18:00 CET</span></div>
-                        <div class="detail-row">📍 <span id="out-loc">Zoom / Online</span></div>
+                        <div>📅 <span id="out-date">Dec 1st, 6:00 PM</span></div>
+                        <div>📍 <span id="out-loc">Zoom / Online</span></div>
                     </div>
-                    <div class="poster-cta" id="out-cta">REGISTER FREE</div>
+                    <div class="poster-cta" id="out-cta-btn">REGISTER FREE</div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script>
-        // 1. Text Updates
-        function updatePoster() {
-            const ids = ['cat', 'title', 'sub', 'date', 'time', 'loc', 'spk-name', 'spk-role', 'cta'];
-            ids.forEach(id => {
-                const el = document.getElementById('out-' + id);
-                const input = document.getElementById('in-' + id);
-                if(el && input) el.innerText = input.value;
+        // --- HISTORY & UNDO SYSTEM ---
+        let historyStack = [];
+        const MAX_HISTORY = 20;
+
+        window.onload = function() {
+            // Set default date to a few days from now
+            const now = new Date();
+            now.setDate(now.getDate() + 3);
+            now.setMinutes(0);
+            now.setHours(18);
+            // Format for datetime-local: YYYY-MM-DDThh:mm
+            const iso = now.toISOString().slice(0, 16);
+            document.getElementById('in-date-picker').value = iso;
+            updateDate();
+
+            saveState(); 
+            document.querySelectorAll('.data-track').forEach(el => {
+                el.addEventListener('blur', saveState); 
             });
+        };
+
+        function saveState() {
+            const currentState = {};
+            document.querySelectorAll('.data-track').forEach(el => {
+                currentState[el.id] = el.value;
+            });
+            if (historyStack.length > 0) {
+                const lastState = historyStack[historyStack.length - 1];
+                if (JSON.stringify(lastState) === JSON.stringify(currentState)) return;
+            }
+            historyStack.push(currentState);
+            if (historyStack.length > MAX_HISTORY) historyStack.shift(); 
         }
 
-        // 2. CSS Variable Updates (Colors)
+        function undoState() {
+            if (historyStack.length <= 1) return alert("Nothing to undo!");
+            historyStack.pop();
+            const prevState = historyStack[historyStack.length - 1];
+            for (const [id, value] of Object.entries(prevState)) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = value;
+                    if (el.type === 'color') {
+                        const cssVar = id === 'in-accent' ? '--accent-color' : '--text-color';
+                        updateCSSVar(cssVar, value);
+                    } else if (el.type === 'range') {
+                        updateOpacity(value);
+                    } else if (id === 'in-date-picker') {
+                        updateDate();
+                    } else {
+                        updatePoster();
+                    }
+                }
+            }
+        }
+
+        // --- UPDATERS ---
+        function updatePoster() {
+            const map = {
+                'in-title': 'out-title',
+                'in-sub': 'out-sub',
+                'in-loc': 'out-loc',
+                'in-spk-name': 'out-spk-name',
+                'in-spk-role': 'out-spk-role',
+                'in-cta': 'out-cta-btn'
+            };
+            for (const [inId, outId] of Object.entries(map)) {
+                const el = document.getElementById(outId);
+                const input = document.getElementById(inId);
+                if(el && input) el.innerText = input.value;
+            }
+        }
+
+        // Date Logic
+        function updateDate() {
+            const val = document.getElementById('in-date-picker').value;
+            if(!val) return;
+            const dateObj = new Date(val);
+            const options = { month: 'short', day: 'numeric', hour: 'numeric', minute:'2-digit' };
+            document.getElementById('out-date').innerText = dateObj.toLocaleDateString('en-US', options);
+        }
+
+        // Text Styling
+        function toggleStyle(id, className) {
+            document.getElementById(id).classList.toggle(className);
+        }
+
+        function changeSize(id, delta) {
+            const el = document.getElementById(id);
+            const style = window.getComputedStyle(el, null).getPropertyValue('font-size');
+            const currentSize = parseFloat(style);
+            el.style.fontSize = (currentSize + delta) + 'px';
+        }
+
         function updateCSSVar(variable, value) {
             document.documentElement.style.setProperty(variable, value);
         }
 
-        // 3. Opacity Slider
         function updateOpacity(val) {
             document.documentElement.style.setProperty('--overlay-opacity', val / 100);
             document.getElementById('opacity-val').innerText = val + '%';
         }
 
-        // 4. Image Handling (FileReader)
+        // --- IMAGE HANDLING ---
         function handleImage(input, targetId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const img = document.getElementById(targetId);
                     img.src = e.target.result;
-                    img.style.display = 'block'; // Show image once loaded
+                    img.style.display = 'block'; 
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // 5. Background Image Handling
         function handleBg(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const bg = document.getElementById('bg-layer');
-                    bg.style.backgroundImage = 'url(' + e.target.result + ')';
+                    setBg(e.target.result);
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // 6. Download Logic
-        function downloadPoster() {
+        function setBg(src) {
+            document.getElementById('bg-layer').style.backgroundImage = `url('${src}')`;
+        }
+
+        // --- DOWNLOAD LOGIC ---
+        function downloadPNG() {
             const poster = document.getElementById('poster-canvas');
-            const btn = document.querySelector('.btn-download');
-            const originalText = btn.innerText;
+            const btn = document.querySelector('.btn-png');
+            btn.innerText = "Generating...";
             
-            btn.innerText = "Processing...";
-            
-            html2canvas(poster, { scale: 2, useCORS: true }).then(canvas => {
+            html2canvas(poster, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'Event_Poster.png';
+                link.download = 'poster.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                btn.innerText = originalText;
+                btn.innerText = "Download Image (PNG)";
             });
         }
-        
-        // Initialize opacity
-        updateOpacity(60);
+
+        function downloadPDF() {
+            const poster = document.getElementById('poster-canvas');
+            const btn = document.querySelector('.btn-pdf');
+            const linkUrl = document.getElementById('in-url').value;
+            const ctaBtn = document.getElementById('out-cta-btn');
+            
+            btn.innerText = "Generating PDF...";
+
+            // 1. Capture Image
+            html2canvas(poster, { scale: 3, useCORS: true, allowTaint: true }).then(canvas => {
+                
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = 210; 
+                const imgHeight = (canvas.height * pageWidth) / canvas.width;
+                
+                // Add the Poster Image
+                pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pageWidth, imgHeight);
+
+                // 2. Add the Clickable Link
+                if (linkUrl) {
+                    // Calculate coordinates relative to the canvas
+                    const posterRect = poster.getBoundingClientRect();
+                    const btnRect = ctaBtn.getBoundingClientRect();
+
+                    // Scaling factor (Canvas px to PDF mm)
+                    const scaleFactor = pageWidth / posterRect.width;
+
+                    const linkX = (btnRect.left - posterRect.left) * scaleFactor;
+                    const linkY = (btnRect.top - posterRect.top) * scaleFactor;
+                    const linkW = btnRect.width * scaleFactor;
+                    const linkH = btnRect.height * scaleFactor;
+
+                    // Add transparent link annotation over the button area
+                    pdf.link(linkX, linkY, linkW, linkH, { url: linkUrl });
+                }
+
+                pdf.save('interactive-poster.pdf');
+                btn.innerText = "Download PDF (with Link)";
+            });
+        }
     </script>
 </body>
 </html>
